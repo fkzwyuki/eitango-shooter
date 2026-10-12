@@ -1,0 +1,1639 @@
+/* style.css — 画面全体の見た目。宇宙の暗い背景に、読みやすいHUDとカードを重ねる。 */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: #000103;
+  overflow: hidden;
+  font-family: "Segoe UI", "Hiragino Sans", "Meiryo", sans-serif;
+  /* スマホ対策（Phase3 Step17）: ダブルタップの拡大・長押しの文字選択・スクロール・引っぱって更新が起きないようにする */
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#viewport {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: radial-gradient(ellipse at center, #0a0e1f 0%, #000103 80%);
+}
+
+/* ゲーム画面本体。基準サイズ1280x720（16:9）をJS（layout.js）で拡大縮小する */
+#game-container {
+  width: 1280px;   /* 実際の大きさはlayout.jsが向きに合わせて書き換える（横=1280x720、縦=幅720基準） */
+  height: 720px;
+  flex: none;   /* 親（#viewport）が縮めないように。縮むと縦の画面で幅が足りなくなる */
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transform-origin: center center;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+  background: #000;
+}
+
+/* ===== 上半分: シューティング ===== */
+
+#screen-top {
+  position: relative;
+  width: 100%;
+  height: 440px;   /* 実際の高さはlayout.jsが決める */
+  flex: none;
+  overflow: hidden;
+  border-bottom: 2px solid #2a3550;
+  box-sizing: border-box;
+}
+
+#game-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#hud-overlay {
+  position: absolute;
+  inset: 0;
+  padding: 14px 18px;
+  box-sizing: border-box;
+  color: #eaf2ff;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 0.9);
+  font-family: "Consolas", "Courier New", monospace;
+  pointer-events: none;
+}
+
+/* 一時停止ボタン（Step7）。hud-overlayの外に置き、pointer-eventsを自分だけ有効にする */
+#pause-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 20;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #eaf2ff;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#pause-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ボタンの右下に出す、キー操作のヒント（Step11。一時停止=9、ミュート=7）。クリックはボタン本体に通す */
+.key-badge {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  min-width: 12px;
+  height: 12px;
+  line-height: 12px;
+  padding: 0 1px;
+  box-sizing: border-box;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #cfe0ff;
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 10px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.btn-icon {
+  pointer-events: none;
+}
+
+/* ミュートボタン（Step9）。一時停止ボタンの左隣に並べる */
+#mute-button {
+  position: absolute;
+  top: 10px;
+  right: 48px;
+  z-index: 20;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #eaf2ff;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#mute-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+#hud-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 22px;
+  letter-spacing: 1px;
+  padding-right: 82px; /* 右上の一時停止・ミュートボタンとSCORE表示が重ならないよう空けておく（Step7、Step9でミュート分を追加） */
+}
+
+#hud-stage { color: #ffe27a; }
+#hud-wave { color: #9fe6ff; }
+#hud-score { color: #ffffff; }
+
+#hud-mid {
+  margin-top: 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 22px;
+}
+
+.gauge-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gauge-label {
+  font-size: 13px;
+  margin-bottom: 6px;
+  letter-spacing: 2px;
+  color: #cfe0ff;
+}
+
+.gauge {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  width: 20px;
+  height: 150px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 3px;
+  padding: 3px;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.gauge-segment {
+  flex: 1;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+#life-gauge .gauge-segment.filled {
+  background: #4be07a;
+  box-shadow: 0 0 4px #4be07a;
+}
+
+#shot-gauge .gauge-segment.filled {
+  background: #4bc8ff;
+  box-shadow: 0 0 4px #4bc8ff;
+}
+
+/* 危機感の演出（Step10。DESIGN.md §5.1 v0.6）。ライフ残り1/3以下でLIFEゲージが赤く点滅、
+   ショット残り1/3以下でSHOTゲージがオレンジに点滅（0で赤寄りに）。点滅の速さはJS（hud.js）が
+   --blink-durationで指定する（ライフが少ないほど速く点滅させるため） */
+#life-gauge.critical .gauge-segment.filled {
+  animation: eg-life-blink var(--blink-duration, 0.6s) ease-in-out infinite;
+}
+
+@keyframes eg-life-blink {
+  0%, 100% { background: #4be07a; box-shadow: 0 0 4px #4be07a; }
+  50% { background: #ff3b3b; box-shadow: 0 0 10px #ff3b3b; }
+}
+
+#shot-gauge.low-ammo .gauge-segment.filled {
+  animation: eg-shot-blink 0.5s ease-in-out infinite;
+}
+
+@keyframes eg-shot-blink {
+  0%, 100% { background: #4bc8ff; box-shadow: 0 0 4px #4bc8ff; }
+  50% { background: #ff9f43; box-shadow: 0 0 10px #ff9f43; }
+}
+
+/* ショット0（NO AMMO）: 塗られている目盛りが無いので、枠全体をうっすら赤く点滅させる */
+#shot-gauge.no-ammo .gauge-segment {
+  animation: eg-shot-empty-blink 0.5s ease-in-out infinite;
+}
+
+@keyframes eg-shot-empty-blink {
+  0%, 100% { background: rgba(255, 90, 60, 0.08); }
+  50% { background: rgba(255, 90, 60, 0.45); }
+}
+
+.ammo-status {
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #ff9f43;
+  min-height: 1.1em;
+  text-align: center;
+}
+
+#hud-bomb-row {
+  margin-top: 14px;
+  font-size: 18px;
+  letter-spacing: 4px;
+  color: #ffce6b;
+}
+
+#hud-bomb-row .gauge-label {
+  display: inline-block;
+  letter-spacing: 2px;
+  margin-right: 10px;
+}
+
+/* 右端: 進み具合バー（下から上へ伸びる）。中ボス戦では体力バーとして使い回す（.boss-mode。DESIGN.md §3.1・§7.4） */
+#progress-bar-label {
+  position: absolute;
+  right: 12px;
+  top: 42px;
+  width: 24px;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #ff8a8a;
+}
+
+#progress-bar-track {
+  position: absolute;
+  right: 16px;
+  top: 60px;
+  bottom: 16px;
+  width: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: flex-end;
+}
+
+#progress-bar-fill {
+  width: 100%;
+  height: 0%;
+  background: linear-gradient(#ffe27a, #ff9f43);
+  box-shadow: 0 0 6px rgba(255, 180, 80, 0.6);
+}
+
+/* 中ボス戦: バーの色を赤系に変え、体力が減る動きが分かるようアニメーションを付ける */
+#progress-bar-track.boss-mode {
+  border-color: rgba(255, 110, 110, 0.55);
+}
+
+#progress-bar-track.boss-mode #progress-bar-fill {
+  background: linear-gradient(#ff8a8a, #b3001f);
+  box-shadow: 0 0 8px rgba(255, 60, 60, 0.7);
+  transition: height 0.25s ease-out;
+}
+
+/* ===== 下半分: 学習コマンド欄 ===== */
+
+#screen-bottom {
+  flex: 1 1 auto;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 22px 40px;
+  background: linear-gradient(#0b0d1a, #05060d);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.bottom-view {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* [hidden]属性はUAスタイルより後にきちんと勝たせる（.bottom-viewのdisplay:flexで打ち消されないように） */
+.bottom-view[hidden] {
+  display: none;
+}
+
+#card-select-view {
+  gap: 32px;
+}
+
+.command-card {
+  width: 220px;
+  height: 210px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, #1b2140, #0e1226);
+  border: 2px solid #3a4a7a;
+  color: #eaf2ff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 0 18px rgba(60, 90, 200, 0.25);
+  cursor: pointer;
+  touch-action: manipulation; /* ダブルタップ拡大の待ちを無くす（Step21） */
+  /* 色の変化は待たずに一瞬で切り替える（transitionは付けない。Step21「もっさり対策」） */
+}
+
+.command-card:hover {
+  border-color: #6f8fe0;
+}
+
+.command-card.armed {
+  border-color: #ffe27a;
+  box-shadow: 0 0 22px rgba(255, 226, 122, 0.55);
+  transform: translateY(-4px);
+}
+
+.command-card.disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.card-number {
+  font-size: 42px;
+  font-weight: bold;
+  color: #7fd1ff;
+}
+
+.card-title {
+  font-size: 22px;
+  letter-spacing: 3px;
+}
+
+.card-sub {
+  font-size: 15px;
+  color: #ffce6b;
+  min-height: 1.2em;
+}
+
+/* 問題の種類（タイピング・並べ替え・熟語3択）のラベル。1問答えるたびにJSが書き換える（Step8。DESIGN.md §4.0） */
+.card-mode-label {
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #9fe6ff;
+  opacity: 0.85;
+  min-height: 1.2em;
+}
+
+/* 切り替わったのが分かる軽い演出は、結果表示のタップ飛ばしで途中の薄い状態が見えてしまうのでやめた（Step21） */
+
+/* ===== 問題画面（共通） ===== */
+
+#question-view {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 14px;
+  color: #eaf2ff;
+}
+
+#question-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  position: relative;
+}
+
+#question-prompt {
+  font-size: 30px;
+  letter-spacing: 2px;
+  text-align: center;
+}
+
+#speak-button {
+  position: absolute;
+  right: 0;
+  font-size: 22px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  color: #eaf2ff;
+  cursor: pointer;
+}
+
+#speak-button:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* 熟語の日→英は、答え合わせが終わるまで🔊を押せない（押すと答えが分かってしまうため） */
+#speak-button:disabled,
+#speak-button.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+#question-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+#question-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+}
+
+.question-message {
+  font-size: 18px;
+  letter-spacing: 1px;
+}
+
+.question-message.result-correct { color: #4be07a; }
+.question-message.result-incorrect { color: #ff6b6b; }
+.question-message.result-pass { color: #cfe0ff; }
+
+#pass-button {
+  font-size: 16px;
+  padding: 8px 22px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #eaf2ff;
+  cursor: pointer;
+  letter-spacing: 2px;
+}
+
+#pass-button:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* PASSはキーボードの「5」でもできる（Step8。DESIGN.md §4.1 v0.5） */
+.pass-key-hint {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-left: 6px;
+  letter-spacing: 0;
+}
+
+/* ===== ① ライフ＝タイピング ===== */
+
+.example-row,
+.input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.example-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  font-size: 22px;
+  color: #9fe6ff;
+}
+
+.input-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 40px;
+  font-size: 22px;
+  border-bottom: 3px solid rgba(255, 255, 255, 0.4);
+  color: #eaf2ff;
+}
+
+.input-letter.current {
+  border-bottom-color: #ffe27a;
+  animation: eg-pulse 0.9s ease-in-out infinite;
+}
+
+.input-letter.filled {
+  border-bottom-color: #4be07a;
+  color: #4be07a;
+}
+
+.input-letter.revealed {
+  border-bottom-color: #ff9f43;
+  color: #ff9f43;
+}
+
+/* お手本が消えたあとの"_"（Step8。DESIGN.md §4.2「最初の約1.5秒だけ見せて消す」） */
+.example-letter.example-hidden {
+  color: rgba(159, 230, 255, 0.35);
+}
+
+.input-letter.wrong-flash,
+.slot.wrong-flash {
+  border-bottom-color: #ff3b3b;
+  color: #ff3b3b;
+  animation: eg-shake 0.22s ease-in-out;
+}
+
+.cursor-mark {
+  color: #ffe27a;
+  font-size: 18px;
+}
+
+.miss-dots {
+  font-size: 14px;
+  color: #ff9f9f;
+  letter-spacing: 3px;
+}
+
+@keyframes eg-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes eg-shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+  75% { transform: translateX(-3px); }
+  100% { transform: translateX(0); }
+}
+
+/* ===== ② ショット＝並べ替え ===== */
+
+.tile-tray,
+.slot-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.tile {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  background: linear-gradient(160deg, #2a3560, #131a34);
+  border: 1px solid #5a6dae;
+  color: #eaf2ff;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.tile:hover {
+  border-color: #9fe6ff;
+}
+
+.tile.used {
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+.tile.wrong-flash {
+  animation: eg-shake 0.22s ease-in-out;
+  border-color: #ff3b3b;
+}
+
+.slot {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+  color: #4be07a;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slot.current {
+  border-style: solid;
+  border-color: #ffe27a;
+  animation: eg-pulse 0.9s ease-in-out infinite;
+}
+
+.slot.filled {
+  border-style: solid;
+  border-color: #4be07a;
+}
+
+.slot.revealed {
+  border-style: solid;
+  border-color: #ff9f43;
+  color: #ff9f43;
+}
+
+/* ===== ③ ボム＝熟語3択 ===== */
+
+/* 3つ縦に並べても、下の「正解／不正解・PASS」の行がコマンド欄（高さ280px）からはみ出さない高さにする
+   （Phase2: gap 10→6px・上下の余白 10→5px。はみ出して結果の表示が見切れていた） */
+.idiom-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 560px;
+}
+
+.idiom-option {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 5px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 19px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.idiom-option:hover {
+  border-color: #9fe6ff;
+}
+
+.idiom-option.armed {
+  border-color: #ffe27a;
+  background: rgba(255, 226, 122, 0.12);
+}
+
+.idiom-option.correct {
+  border-color: #4be07a;
+  background: rgba(75, 224, 122, 0.15);
+  color: #4be07a;
+}
+
+.idiom-option.incorrect {
+  border-color: #ff3b3b;
+  background: rgba(255, 59, 59, 0.15);
+  color: #ff6b6b;
+}
+
+.option-number {
+  color: #9fe6ff;
+  font-weight: bold;
+}
+
+/* ===== 意味4択（Phase3 Step16。DESIGN.md §4.6）=====
+   熟語の選択肢の見た目を使い回し、4つを2列×2段に並べる（コマンド欄の高さ280pxに収めるため） */
+.idiom-options.meaning-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  max-width: 760px;
+}
+
+.meaning-options .idiom-option {
+  padding: 8px 16px;
+  min-width: 0;
+}
+
+.meaning-options .option-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 穴埋め（Phase3 Step16。DESIGN.md §4.5）=====
+   つづりの行は .slot（並べ替えと同じ枠）。抜いていない文字は枠を薄くした「見せるだけ」の文字、
+   文字タイルはクリックで押す（ドラッグはしない）ので指の形にする */
+.fill-word {
+  flex-wrap: nowrap;
+}
+
+.slot.known {
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #eaf2ff;
+}
+
+.fill-tile {
+  cursor: pointer;
+}
+
+/* ===== 始まりの画面／クリア・ゲームオーバー画面（DESIGN.md §3.2、Step6） =====
+   #screen-top・#screen-bottomの上に重ねて、両方をまとめて覆う */
+
+.screen-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 3, 10, 0.9);
+  text-align: center;
+}
+
+.screen-overlay[hidden] {
+  display: none;
+}
+
+.screen-overlay-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 32px 48px;
+  color: #eaf2ff;
+}
+
+.game-title {
+  font-size: 54px;
+  letter-spacing: 4px;
+  margin: 0;
+  color: #ffe27a;
+  text-shadow: 0 0 20px rgba(255, 226, 122, 0.6);
+  font-family: "Consolas", "Courier New", monospace;
+}
+
+.how-to-play {
+  font-size: 16px;
+  line-height: 1.9;
+  color: #cfe0ff;
+  margin: 0;
+}
+
+.primary-button {
+  font-size: 22px;
+  padding: 12px 48px;
+  border-radius: 10px;
+  border: 2px solid #ffe27a;
+  background: linear-gradient(160deg, #3a3560, #1a1830);
+  color: #ffe27a;
+  cursor: pointer;
+  letter-spacing: 4px;
+  transition: transform 0.1s, box-shadow 0.15s;
+}
+
+.primary-button:hover {
+  box-shadow: 0 0 24px rgba(255, 226, 122, 0.5);
+  transform: translateY(-2px);
+}
+
+/* タイトル画面のステージ選択（Phase2 Step14）。押すとそのステージで始まる。選んでいるものは金色の枠、
+   単語が足りないステージ（.locked）は灰色で押せない */
+.stage-select {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+}
+
+.stage-button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 150px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  color: #cfe0ff;
+  cursor: pointer;
+  font-family: "Consolas", "Courier New", monospace;
+  transition: transform 0.1s, box-shadow 0.15s, border-color 0.15s;
+}
+
+.stage-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: #9fe6ff;
+}
+
+.stage-button.selected {
+  border-color: #ffe27a;
+  background: linear-gradient(160deg, #3a3560, #1a1830);
+  color: #ffe27a;
+  box-shadow: 0 0 20px rgba(255, 226, 122, 0.45);
+}
+
+.stage-button.locked,
+.stage-button:disabled {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(207, 224, 255, 0.3);
+  cursor: not-allowed;
+}
+
+.stage-key {
+  position: absolute;
+  top: 4px;
+  left: 8px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.stage-name {
+  font-size: 22px;
+  letter-spacing: 3px;
+}
+
+.stage-level {
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.stage-note {
+  font-size: 12px;
+  letter-spacing: 2px;
+}
+
+/* 一時停止画面の「最初から」（Step7）。「再開」より控えめな見た目にして、うっかり押しにくくする */
+.secondary-button {
+  font-size: 16px;
+  padding: 8px 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cfe0ff;
+  cursor: pointer;
+  letter-spacing: 3px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.secondary-button:hover {
+  border-color: #9fe6ff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.pause-title {
+  font-size: 44px;
+  margin: 0;
+  letter-spacing: 6px;
+  color: #9fe6ff;
+  text-shadow: 0 0 16px rgba(159, 230, 255, 0.6);
+  font-family: "Consolas", "Courier New", monospace;
+}
+
+.key-hint {
+  font-size: 13px;
+  color: rgba(234, 242, 255, 0.55);
+  margin: 0;
+}
+
+/* タイトル画面のキー案内（Step11）。マウスを使わずに始められると分かるよう、少し目立たせる */
+.key-hint-strong {
+  font-size: 16px;
+  color: rgba(234, 242, 255, 0.85);
+}
+
+.key-hint kbd {
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffe27a;
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 0.95em;
+  text-align: center;
+}
+
+/* タイトル画面の「今の音の状態」（Step11。前回ミュートのまま最初から音が出ない、に気づけるように） */
+.sound-state {
+  margin: 0;
+  font-size: 15px;
+  color: #9fe6ff;
+  letter-spacing: 1px;
+}
+
+.sound-state.sound-off {
+  color: #ff9f43;
+}
+
+.result-title {
+  font-size: 42px;
+  margin: 0;
+  letter-spacing: 3px;
+  font-family: "Consolas", "Courier New", monospace;
+}
+
+.result-title-clear {
+  color: #4be07a;
+  text-shadow: 0 0 16px rgba(75, 224, 122, 0.6);
+}
+
+.result-title-gameover {
+  color: #ff5050;
+  text-shadow: 0 0 16px rgba(255, 80, 80, 0.6);
+}
+
+.result-score {
+  font-size: 26px;
+  letter-spacing: 2px;
+  font-family: "Consolas", "Courier New", monospace;
+}
+
+.result-stats {
+  display: flex;
+  gap: 26px;
+  font-size: 17px;
+  color: #cfe0ff;
+}
+
+.result-stats span {
+  color: #eaf2ff;
+  font-weight: bold;
+}
+
+/* 魔王魂のクレジット表示（Step9。DESIGN.md §10.1）。タイトル・結果画面の隅に小さく出す */
+.sound-credit {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: rgba(234, 242, 255, 0.4);
+}
+
+
+/* ===== ボムボタン（Phase3 Step17）。縦の画面・タッチの機械で、シューティングの右下に出す ===== */
+#bomb-button {
+  display: none;
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 20;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 150px;
+  height: 64px;
+  border-radius: 14px;
+  border: 2px solid #ffce6b;
+  background: rgba(255, 206, 107, 0.16);
+  color: #ffce6b;
+  font-size: 24px;
+  letter-spacing: 2px;
+  cursor: pointer;
+}
+
+#bomb-button.empty {
+  opacity: 0.4;
+}
+
+#bomb-button:active {
+  background: rgba(255, 206, 107, 0.4);
+}
+
+body.portrait #bomb-button,
+body.touch #bomb-button {
+  display: flex;
+}
+
+/* 横向きのスマホ: 右端の進み具合バーと重ならないよう、少し左へ */
+body.touch:not(.portrait) #bomb-button {
+  right: 60px;
+}
+
+/* タッチの機械では数字キーの目印・キーボード向けの案内を出さない。PC向け／タッチ向けの文を切り替える */
+body.touch .key-badge,
+body.touch .pass-key-hint,
+body.touch .key-hint,
+body.touch .stage-key,
+body.touch .pc-only,
+body.touch .option-number,
+body.touch .card-number {
+  display: none !important;
+}
+
+body:not(.touch) .touch-only {
+  display: none;
+}
+
+/* ===================================================================
+   縦の画面（body.portrait。Phase3 Step17。DESIGN.md §3.3）
+   幅720を基準に拡大縮小するので、スマホ（幅約390px）では約0.54倍になる。
+   文字は大きめ、指で押すものは 88px 以上（＝実際の画面で約44px以上）にしてある。
+   =================================================================== */
+body.portrait {
+  --tap: 88px;
+}
+
+/* --- 上: シューティング --- */
+body.portrait #hud-overlay {
+  padding: 12px 14px;
+}
+
+body.portrait #hud-top-row {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 2px 22px;
+  font-size: 30px;
+  padding-right: 210px; /* 右上の一時停止・ミュートボタンを避ける */
+}
+
+body.portrait #hud-score {
+  flex-basis: 100%;
+}
+
+body.portrait #pause-button,
+body.portrait #mute-button {
+  top: 8px;
+  width: var(--tap);
+  height: var(--tap);
+  font-size: 40px;
+}
+
+body.portrait #pause-button { right: 10px; }
+body.portrait #mute-button { right: 108px; }
+
+body.portrait #hud-mid {
+  margin-top: 16px;
+  flex-direction: column;
+  gap: 10px;
+}
+
+body.portrait .gauge-block {
+  position: relative;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+body.portrait .gauge-label {
+  font-size: 24px;
+  margin: 0;
+  width: 78px;
+  letter-spacing: 1px;
+}
+
+body.portrait .gauge {
+  flex-direction: row;
+  width: 270px;
+  height: 34px;
+  padding: 4px;
+}
+
+body.portrait .gauge-segment {
+  flex: 1;
+}
+
+body.portrait .ammo-status {
+  margin: 0;
+  font-size: 20px;
+  min-height: 0;
+}
+
+body.portrait #hud-bomb-row {
+  position: absolute;
+  left: 14px;
+  bottom: 30px;
+  margin: 0;
+  font-size: 34px;
+}
+
+body.portrait #hud-bomb-row .gauge-label {
+  font-size: 24px;
+  width: auto;
+}
+
+body.portrait #progress-bar-label {
+  top: 108px;
+  right: 14px;
+  width: 36px;
+  font-size: 18px;
+}
+
+body.portrait #progress-bar-track {
+  top: 134px;
+  bottom: 120px;
+  right: 20px;
+  width: 22px;
+}
+
+body.portrait #bomb-button {
+  right: 14px;
+  bottom: 14px;
+  width: 210px;
+  height: var(--tap);
+  font-size: 34px;
+}
+
+/* --- 下: カードと問題の欄 --- */
+body.portrait #screen-bottom {
+  padding: 24px;
+}
+
+body.portrait #card-select-view {
+  gap: 16px;
+}
+
+body.portrait .command-card {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  max-width: 230px;
+  height: 100%;
+  max-height: 340px;
+  min-height: var(--tap);
+  gap: 16px;
+}
+
+body.portrait .card-number { font-size: 52px; }
+body.portrait .card-title { font-size: 36px; letter-spacing: 1px; }
+body.portrait .card-mode-label { font-size: 28px; opacity: 1; }
+body.portrait .card-sub { font-size: 24px; }
+
+body.portrait #question-view {
+  gap: 12px;
+  justify-content: space-between;
+}
+
+body.portrait #question-top-row {
+  min-height: var(--tap);
+}
+
+body.portrait #question-prompt {
+  font-size: 44px;
+  line-height: 1.25;
+  padding: 0 104px;
+  letter-spacing: 1px;
+  overflow-wrap: anywhere;
+}
+
+body.portrait #speak-button {
+  width: var(--tap);
+  height: var(--tap);
+  font-size: 40px;
+}
+
+body.portrait #question-body {
+  min-height: 0;
+  gap: 12px;
+}
+
+body.portrait #question-bottom-row {
+  min-height: var(--tap);
+}
+
+body.portrait .question-message { font-size: 30px; }
+
+body.portrait #pass-button {
+  min-width: 190px;
+  height: var(--tap);
+  font-size: 32px;
+  padding: 0 36px;
+  border-radius: 14px;
+}
+
+body.portrait .pass-key-hint { font-size: 20px; }
+
+/* タイピング（キーボードのある縦長の窓向け。タッチでは出ない） */
+body.portrait .example-letter,
+body.portrait .input-letter {
+  width: 44px;
+  font-size: 34px;
+}
+body.portrait .example-row,
+body.portrait .input-row { gap: 6px; flex-wrap: wrap; }
+
+/* 並べ替え・穴埋め（タイル） */
+body.portrait .tile-tray { gap: 8px; }
+body.portrait .slot-row { gap: 4px; }
+
+body.portrait .tile {
+  width: var(--tap);
+  height: var(--tap);
+  font-size: 44px;
+  border-radius: 12px;
+}
+
+body.portrait .slot {
+  width: 46px;
+  height: 64px;
+  font-size: 36px;
+  border-radius: 8px;
+}
+
+body.portrait .fill-word { gap: 4px; }
+body.portrait .fill-word .slot { flex: 0 1 46px; min-width: 0; }
+
+body.portrait .miss-dots { font-size: 26px; min-height: 1.2em; }
+
+/* 熟語3択・意味4択 */
+body.portrait .idiom-options {
+  max-width: none;
+  gap: 12px;
+}
+
+body.portrait .idiom-option {
+  min-height: var(--tap);
+  padding: 10px 22px;
+  font-size: 34px;
+  border-radius: 14px;
+}
+
+body.portrait .idiom-options.meaning-options {
+  max-width: none;
+  gap: 12px;
+}
+
+body.portrait .meaning-options .idiom-option {
+  padding: 10px 14px;
+  font-size: 30px;
+  justify-content: center;
+  text-align: center;
+}
+
+body.portrait .meaning-options .option-text {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+
+/* --- 画面いっぱいの画面（タイトル・クリア・一時停止） --- */
+body.portrait .screen-overlay-inner {
+  padding: 24px;
+  gap: 28px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+body.portrait .game-title { font-size: 66px; letter-spacing: 2px; }
+body.portrait .how-to-play { font-size: 28px; line-height: 1.8; }
+
+body.portrait .primary-button {
+  min-width: 340px;
+  min-height: var(--tap);
+  font-size: 40px;
+  padding: 16px 56px;
+  border-radius: 16px;
+}
+
+body.portrait .secondary-button {
+  min-width: 300px;
+  min-height: var(--tap);
+  font-size: 32px;
+  padding: 12px 40px;
+  border-radius: 16px;
+}
+
+body.portrait .stage-select {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+  max-width: 600px;
+}
+
+body.portrait .stage-button {
+  min-width: 0;
+  min-height: 112px;
+  padding: 14px;
+  justify-content: center;
+}
+
+body.portrait .stage-name { font-size: 34px; }
+body.portrait .stage-level { font-size: 22px; }
+body.portrait .stage-note { font-size: 20px; }
+body.portrait .sound-state { font-size: 26px; }
+body.portrait .key-hint { font-size: 20px; }
+body.portrait .key-hint-strong { font-size: 24px; }
+body.portrait .sound-credit { font-size: 20px; bottom: 16px; }
+body.portrait .pause-title { font-size: 72px; }
+body.portrait .result-title { font-size: 64px; }
+body.portrait .result-score { font-size: 40px; }
+body.portrait .result-stats { font-size: 30px; gap: 28px; }
+
+/* ===== 会話（Phase3 Step20。DESIGN.md §4.7）=====
+   問題の欄（.talk-q）: 上に「📍場面」と相手のセリフ、真ん中に選択肢3つ（最初から出す。v0.11）、
+   選んだあとは正解の訳と「なぜ合わないか」を選択肢の下に出す。縦の画面も横の画面も1列×3段 */
+#question-view.talk-q {
+  gap: 6px;
+}
+
+.talk-q #question-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  letter-spacing: 0;
+  padding: 0 60px;
+  min-width: 0;
+}
+
+.talk-scene {
+  font-size: 20px;
+  color: #9fe6ff;
+  line-height: 1.25;
+}
+
+.talk-line {
+  font-size: 26px;
+  color: #ffffff;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.talk-q #question-body {
+  gap: 4px;
+  justify-content: flex-start;
+  min-height: 0;
+}
+
+.talk-wrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* 選択肢は3つ（v0.11）。横の画面でも1列に並べる */
+.talk-wrap .talk-options {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  max-width: 1100px;
+}
+
+.talk-wrap .idiom-option {
+  padding: 6px 14px;
+  min-width: 0;
+  font-size: 19px;
+  line-height: 1.25;
+}
+
+.talk-wrap .option-text {
+  overflow-wrap: anywhere;
+}
+
+.talk-feedback {
+  width: 100%;
+  max-width: 1100px;
+  text-align: center;
+  min-height: 0;
+}
+
+.talk-ja {
+  font-size: 19px;
+  color: #eaf2ff;
+  line-height: 1.25;
+}
+
+.talk-why {
+  font-size: 16px;
+  color: #ff9f9f;
+  line-height: 1.25;
+}
+
+/* 縦の画面（720幅の箱）: 選択肢は1列×3段。長い文は2行に折り返す */
+body.portrait .talk-q #question-prompt {
+  padding: 0 104px 0 0;
+  text-align: left;
+  align-items: flex-start;
+}
+
+body.portrait .talk-scene { font-size: 28px; }
+body.portrait .talk-line { font-size: 34px; }
+
+body.portrait #question-view.talk-q {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+body.portrait .talk-q #question-body {
+  gap: 6px;
+}
+
+body.portrait .talk-wrap .talk-options {
+  grid-template-columns: 1fr;
+  gap: 8px;
+  max-width: none;
+}
+
+body.portrait .talk-wrap .idiom-option {
+  padding: 8px 16px;
+  font-size: 30px;
+  min-height: var(--tap);
+}
+
+body.portrait .talk-ja { font-size: 28px; }
+body.portrait .talk-why { font-size: 26px; }
+
+/* ===== ゲーム内キーボード（Phase3 Step21。DESIGN.md §3.3 v0.11）=====
+   タッチの機械のタイピングで、問題の欄に出す QWERTY の3段キーボード（スマホのキーボード風。文字は小文字）。
+   キーは1段の幅いっぱいに均等（1段目は10キー、2段目9、3段目7は同じ大きさで中央寄せ） */
+.kb {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.kb-row {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.kb-key {
+  box-sizing: border-box;
+  flex: 0 0 calc((100% - 36px) / 10);
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: linear-gradient(160deg, #2a3560, #131a34);
+  border: 1px solid #5a6dae;
+  color: #eaf2ff;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* 押したキーが一瞬光る（JSが keyFlashMs だけ付ける） */
+.kb-key.kb-flash {
+  background: #ffe27a;
+  border-color: #ffffff;
+  color: #1a1830;
+  box-shadow: 0 0 14px rgba(255, 226, 122, 0.9);
+}
+
+body.portrait .kb { gap: 10px; }
+body.portrait .kb-row { gap: 6px; }
+body.portrait .kb-key {
+  flex: 0 0 calc((100% - 54px) / 10);
+  height: var(--tap);
+  font-size: 44px;
+  border-radius: 12px;
+}
+
+/* fps表示（URLに ?fps=1 を付けたときだけ作られる。Step21）。画面の左上すみ、操作のじゃまにならない */
+#fps-display {
+  position: fixed;
+  left: 2px;
+  top: 2px;
+  z-index: 9999;
+  padding: 1px 5px;
+  font: 12px/1.3 monospace;
+  color: #7dff9b;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+/* ===== 語順（Phase3 Step22。DESIGN.md §4.8）=====
+   上に日本語の訳（#question-prompt）、その下に「入れた単語が並ぶ枠」、その下に単語のタイル。
+   タイルも枠も折り返して、文が長くても欄から見切れない。タイルは指で押せる大きさ（横の画面は 52px で、画面の縮小後も 44px 以上） */
+.order-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+#question-view.order-q {
+  gap: 8px;
+}
+
+.order-q #question-prompt {
+  font-size: 26px;
+  letter-spacing: 0;
+  padding: 0 60px;
+  line-height: 1.25;
+}
+
+.order-q #question-body {
+  justify-content: flex-start;
+  min-height: 0;
+  gap: 8px;
+}
+
+.order-slots,
+.order-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 1100px;
+}
+
+.order-slot {
+  min-width: 48px;
+  height: 52px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+  color: #4be07a;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.order-slot.current {
+  border-style: solid;
+  border-color: #ffe27a;
+  animation: eg-pulse 0.9s ease-in-out infinite;
+}
+
+.order-slot.filled {
+  border-style: solid;
+  border-color: #4be07a;
+}
+
+.order-slot.revealed {
+  border-style: solid;
+  border-color: #ff9f43;
+  color: #ff9f43;
+}
+
+.order-tile {
+  min-width: 48px;
+  height: 52px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: linear-gradient(160deg, #2a3560, #131a34);
+  border: 1px solid #5a6dae;
+  color: #eaf2ff;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.order-tile:hover {
+  border-color: #9fe6ff;
+}
+
+.order-tile.used {
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+.order-tile.wrong-flash {
+  animation: eg-shake 0.22s ease-in-out;
+  border-color: #ff3b3b;
+  color: #ff6b6b;
+}
+
+/* 縦の画面（720幅の箱）: 文字を大きく、タイルは 88px（実際の画面で約47px）の高さ */
+body.portrait .order-q #question-prompt {
+  font-size: 40px;
+  padding: 0 104px 0 8px;
+  text-align: left;
+}
+
+body.portrait #question-view.order-q {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+body.portrait .order-q #question-body {
+  gap: 10px;
+}
+
+body.portrait .order-wrap { gap: 12px; }
+
+body.portrait .order-slots,
+body.portrait .order-tiles {
+  gap: 10px;
+  max-width: none;
+}
+
+body.portrait .order-slot {
+  min-width: 64px;
+  height: 64px;
+  padding: 0 14px;
+  font-size: 32px;
+  border-radius: 12px;
+}
+
+body.portrait .order-tile {
+  min-width: var(--tap);
+  height: var(--tap);
+  padding: 0 24px;
+  font-size: 36px;
+  border-radius: 14px;
+}

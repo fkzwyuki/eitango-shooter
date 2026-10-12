@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000103">
+<title>Shoot the Shard（仮）</title>
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<script>
+  // ホーム画面に追加できるように manifest を読ませる（Phase 3 Step 18）。http(s) で開いたときだけ
+  // （file:// だと読み込みがエラーになるため。file:// でもゲームは普通に動く）
+  if (/^https?:$/.test(location.protocol)) {
+    var mf = document.createElement('link');
+    mf.rel = 'manifest';
+    mf.href = 'manifest.webmanifest';
+    document.head.appendChild(mf);
+  }
+</script>
+<link rel="stylesheet" href="src/style.css?v=e858dcb">
+</head>
+<body>
+<div id="viewport">
+  <div id="game-container">
+
+    <!-- 上半分: シューティング（Canvas + HUD） -->
+    <div id="screen-top">
+      <canvas id="game-canvas" width="1280" height="440"></canvas>
+
+      <!-- 一時停止ボタン（Step7。DESIGN.md §3.1）。hud-overlay自体はpointer-events:noneなので、このボタンだけ有効にする。
+           Step11: 「9」キーでも押せる（右下の小さい数字がそのヒント） -->
+      <button id="pause-button" type="button" aria-label="一時停止"><span class="btn-icon">⏸</span><span class="key-badge">9</span></button>
+      <!-- ミュートボタン（Step9。一時停止ボタンの隣。DESIGN.md §10）。Step11: 「7」キーでも切り替えられる（src/sounds.js。Mキーは廃止） -->
+      <button id="mute-button" type="button" aria-label="ミュート"><span class="btn-icon" id="mute-icon">🔊</span><span class="key-badge">7</span></button>
+
+      <!-- ボムボタン（Phase3 Step17。スペースキーの代わり。縦の画面・タッチの機械で出す。シューティングの右下） -->
+      <button id="bomb-button" type="button" aria-label="ボム"><span class="btn-icon">💣</span><span class="bomb-button-text">ボム</span></button>
+
+      <div id="hud-overlay">
+        <div id="hud-top-row">
+          <span id="hud-stage">STAGE 1</span>
+          <span id="hud-wave">WAVE 1/3</span>
+          <span id="hud-score">SCORE 0000000</span>
+        </div>
+
+        <div id="hud-mid">
+          <div class="gauge-block">
+            <div class="gauge-label">LIFE</div>
+            <div id="life-gauge" class="gauge"></div>
+          </div>
+          <div class="gauge-block">
+            <div class="gauge-label">SHOT</div>
+            <div id="shot-gauge" class="gauge"></div>
+            <!-- ショットが少ないときの「LOW AMMO」「NO AMMO」表示（Step10。DESIGN.md §5.1 v0.6） -->
+            <div id="shot-status" class="ammo-status"></div>
+          </div>
+        </div>
+
+        <div id="hud-bomb-row">
+          <span class="gauge-label">BOMB</span>
+          <span id="bomb-count"></span>
+        </div>
+      </div>
+
+      <div id="progress-bar-label"></div>
+      <div id="progress-bar-track">
+        <div id="progress-bar-fill"></div>
+      </div>
+    </div>
+
+    <!-- 下半分: 学習コマンド欄（カード3枚 ⇔ 問題画面） -->
+    <div id="screen-bottom">
+      <!-- カードの資源（①ライフ②ショット③ボム）は位置固定。data-mode・.card-mode-labelは問題の種類
+           （タイピング・並べ替え・穴埋め・意味4択・熟語3択・会話）を表し、1問答えるたびにJS（commands.js）がシャッフルして書き換える
+           （DESIGN.md §4.0）。data-modeはテスト（tools/test/）が今の割り当てを読むためのもの -->
+      <div id="card-select-view" class="bottom-view">
+        <div class="command-card" data-card="1" data-mode="typing">
+          <div class="card-number">①</div>
+          <div class="card-title">ライフ</div>
+          <div class="card-mode-label">タイプ</div>
+        </div>
+        <div class="command-card" data-card="2" data-mode="arrange">
+          <div class="card-number">②</div>
+          <div class="card-title">ショット</div>
+          <div class="card-mode-label">並べ替え</div>
+        </div>
+        <div class="command-card" data-card="3" data-mode="idiom">
+          <div class="card-number">③</div>
+          <div class="card-title">ボム</div>
+          <div class="card-mode-label">熟語</div>
+          <div class="card-sub" id="bomb-remaining">残り2回</div>
+        </div>
+      </div>
+
+      <div id="question-view" class="bottom-view" hidden>
+        <div id="question-top-row">
+          <div id="question-prompt"></div>
+          <button id="speak-button" type="button" aria-label="発音を聞く">🔊</button>
+        </div>
+        <div id="question-body"></div>
+        <div id="question-bottom-row">
+          <div id="question-message" class="question-message"></div>
+          <button id="pass-button" type="button">PASS<span class="pass-key-hint">5</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 始まりの画面（DESIGN.md §3.2）。「スタート」を押すまでゲームは動かさない -->
+    <div id="screen-title" class="screen-overlay">
+      <div class="screen-overlay-inner">
+        <h1 class="game-title">Shoot the Shard</h1>
+        <p class="how-to-play">
+          下のカードを選んで、英語の問題に答えよう<br>
+          正解すると、ライフ・ショット・ボムが回復する<br>
+          <span class="pc-only">スペースキーでボムを発射（ピンチのときに）</span><span class="touch-only">右下のボムボタンでボムを発射（ピンチのときに）</span>
+        </p>
+        <!-- ステージ選択（Phase2 Step14）。ボタンはJS（screens.js）が balance.stage の設定から作る。単語が足りないステージは灰色 -->
+        <div id="stage-select" class="stage-select"></div>
+        <button id="start-button" type="button" class="primary-button">スタート</button>
+        <!-- Step11: マウスを使わず、キーだけでスタートして音も鳴らせる -->
+        <p class="key-hint key-hint-strong"><kbd>Enter</kbd> でスタート　／　<kbd>7</kbd> で音のオン・オフ　／　<kbd>9</kbd> で一時停止</p>
+        <p class="key-hint"><kbd>1</kbd>〜<kbd>4</kbd> でステージを選んで開始　／　<kbd>←</kbd> <kbd>→</kbd> で選んで <kbd>Enter</kbd> でも</p>
+        <p id="title-sound-state" class="sound-state">音：オン</p>
+      </div>
+      <!-- 魔王魂のクレジット表示（Step9。DESIGN.md §10.1「可能な限り『音楽：魔王魂』のように著作表記を」） -->
+      <p class="sound-credit">音楽：魔王魂　（版 e858dcb）</p>
+    </div>
+
+    <!-- クリア／ゲームオーバー画面（DESIGN.md §3.2、Step6）。見出しと色はJS（screens.js）で切り替える -->
+    <div id="screen-result" class="screen-overlay" hidden>
+      <div class="screen-overlay-inner">
+        <h2 id="result-title" class="result-title"></h2>
+        <div id="result-score" class="result-score">SCORE 0000000</div>
+        <div class="result-stats">
+          <div>正解 <span id="result-correct">0</span></div>
+          <div>不正解 <span id="result-incorrect">0</span></div>
+          <div>PASS <span id="result-pass">0</span></div>
+        </div>
+        <!-- Stage1をクリアしたときだけ出す（Phase2 Step14。screens.jsが hidden を切り替える） -->
+        <button id="next-stage-button" type="button" class="primary-button" hidden>次のステージへ</button>
+        <button id="retry-button" type="button" class="primary-button">もう一度</button>
+        <p id="result-key-hint" class="key-hint">Enterキーでも遊べます</p>
+      </div>
+      <p class="sound-credit">音楽：魔王魂</p>
+    </div>
+
+    <!-- 一時停止画面（DESIGN.md §3.1、Step7）。タイトル・結果画面では出さない（pause.jsがガードする） -->
+    <div id="screen-pause" class="screen-overlay" hidden>
+      <div class="screen-overlay-inner">
+        <h2 class="pause-title">PAUSE</h2>
+        <button id="pause-resume-button" type="button" class="primary-button">再開</button>
+        <button id="pause-restart-button" type="button" class="secondary-button">最初から</button>
+        <p class="key-hint"><kbd>9</kbd> キー（または <kbd>Esc</kbd>）でも再開できます　／　<kbd>7</kbd> で音のオン・オフ</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 単語データ（tools/build_words.py が words/stage*.csv から生成する） -->
+<script src="build/words.js?v=e858dcb"></script>
+
+<!-- ゲームのプログラム。モジュール形式は使わず、読み込み順が意味を持つ -->
+<script src="src/balance.js?v=e858dcb"></script>
+<script src="src/util.js?v=e858dcb"></script>
+<script src="src/events.js?v=e858dcb"></script>
+<script src="src/speech.js?v=e858dcb"></script>
+<script src="src/sounds.js?v=e858dcb"></script>
+<script src="src/state.js?v=e858dcb"></script>
+<script src="src/questions.js?v=e858dcb"></script>
+<script src="src/hud.js?v=e858dcb"></script>
+<script src="src/canvas.js?v=e858dcb"></script>
+<script src="src/mode-typing.js?v=e858dcb"></script>
+<script src="src/mode-rearrange.js?v=e858dcb"></script>
+<script src="src/mode-idiom.js?v=e858dcb"></script>
+<script src="src/mode-fill.js?v=e858dcb"></script>
+<script src="src/mode-meaning.js?v=e858dcb"></script>
+<script src="src/mode-talk.js?v=e858dcb"></script>
+<script src="src/mode-order.js?v=e858dcb"></script>
+<script src="src/commands.js?v=e858dcb"></script>
+<script src="src/danmaku.js?v=e858dcb"></script>
+<script src="src/battle.js?v=e858dcb"></script>
+<script src="src/banner.js?v=e858dcb"></script>
+<script src="src/wave.js?v=e858dcb"></script>
+<script src="src/screens.js?v=e858dcb"></script>
+<script src="src/pause.js?v=e858dcb"></script>
+<script src="src/layout.js?v=e858dcb"></script>
+<script src="src/main.js?v=e858dcb"></script>
+</body>
+</html>
